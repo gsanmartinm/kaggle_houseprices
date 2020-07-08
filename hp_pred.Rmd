@@ -1,0 +1,51 @@
+---
+title: "House Prices Analysis"
+author: "minetoportconsulting"
+date: "07-07-2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# House Prices Prediction
+
+The analysis will be performed in the following steps:
++ load libraries that are going to be required to perform data analysis (wrangling)
++ import the master database (train and test datasets)
++ clean and transform the data
++ perform an EDA, to identify main drivers that explain how the prices are set
++ generate a prediction on the test dataset
+
+It looks pretty obvious, but as a good practice the report should always starts with a short definition of the next steps.
+
+## Libraries required
+```{r, echo = FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(ggthemes)
+```
+## Importing data
+```{r}
+train <- read.csv("./data/train.csv")
+test <- read.csv("./data/test.csv")
+```
+
+## Data cleaning
+```{r}
+# We should start the analysis by joining both tables.
+dim(test)
+dim(train)
+# train df has 1 column more than test df. This is due to the "SalePrice" column, which has to be incorporated into the test dataset filled with NAs. Also, it is expected that every row incorporates an id that let us differenciate between test and train dataset.
+test$SalePrice <- NA
+test$dataset <- "test"
+train$dataset <- "train"
+house_prices <- rbind(test,train)
+
+summary(house_prices)
+
+
+```
+
