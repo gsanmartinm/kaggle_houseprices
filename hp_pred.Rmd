@@ -46,6 +46,44 @@ house_prices <- rbind(test,train)
 
 summary(house_prices)
 
+# EDA : an exploratory analysis must be performed to identify the main components that defines the saleprice.
+# for this purposes, train dataset will be used and the final model will be applied on the test dataset.
+# LotArea and MSZoning seems to be a good pair of variables to start this analysis
+
+table_by_MSZoning <- train %>% group_by(MSZoning) %>% summarize(p = n()) %>% mutate(pct = round(p/sum(p)*100))
+
+# RL (Residential low density) + RM (Residential medium density) represents 86 pct of the train data. The analysis should start by those groups.
+
+# Is there any correlation between SalePrice and LotArea by Neighborhood?
+
+tabla_RL_by_neighb <- train %>% filter(MSZoning == "RL") %>% group_by(Neighborhood) %>% summarize(p = n()) %>% mutate(pct = round(p/sum(p)*100))
+
+train_RL <- train %>% filter(MSZoning == "RL")
+
+nbhd_trainRL <- as.array(levels(train_RL$Neighborhood))
+
+# calcular correlaciones por cada neighborhood
+
+correl <- data.frame(r_adj = c(1:25), Neighborhood = NA)
+for (i in c(1:25)) {
+  test_new <- train %>% filter(Neighborhood == nbhd_trainRL[i]) %>% select(Neighborhood,SalePrice,LotArea)
+  correl$r_adj[i] <- cor(test_new$SalePrice,test_new$LotArea)
+  correl$Neighborhood[i] <- nbhd_trainRL[i]
+}
+
+correl %>% ggplot(aes(Neighborhood,r_adj))+
+  geom_bar(stat = "identity")+
+  coord_flip()
+
+# se puede depurar mas, es un buen quiebre.
+# hacer ejercicio con RM y después automatizar en for anidados
+# 
+
+train %>% ggplot(aes(log(LotArea), SalePrice))+
+  geom_point(size = 1, aes( color = MSZoning))+
+  geom_smooth(method = "lm",color = "black")+
+  facet_grid(rows = vars(MSZoning), cols = vars(Neighborhood))
+
 
 ```
 
