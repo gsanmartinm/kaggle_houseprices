@@ -26,6 +26,7 @@ library(dplyr)
 library(ggplot2)
 library(tidyverse)
 library(ggthemes)
+library(MASS)
 ```
 ## Importing data
 ```{r}
@@ -44,6 +45,14 @@ test$dataset <- "test"
 train$dataset <- "train"
 house_prices <- rbind(test,train)
 
+
+```
+
+## Exploratory Data Analysis
+
+An exploratory data analysis (EDA) must be performed to determine which variables should be included into the prediction model. For this purpose, some variables were selected to determine their influence over saleprice. Results are summarized in the following graphics.
+
+```{r}
 summary(house_prices)
 
 # EDA : an exploratory analysis must be performed to identify the main components that defines the saleprice.
@@ -84,6 +93,54 @@ train %>% ggplot(aes(log(LotArea), SalePrice))+
   geom_smooth(method = "lm",color = "black")+
   facet_grid(rows = vars(MSZoning), cols = vars(Neighborhood))
 
+# There is no evidence that links Houses Sale-Price with the YrSold variable.
+
+train %>% filter(MSZoning == "RL") %>% group_by(YearBuilt,YrSold) %>%  summarize(avg_soldprice = mean(SalePrice), q = n()) %>% arrange(desc(q)) %>% ggplot(aes(YrSold,avg_soldprice,group = YrSold))+
+  geom_boxplot(aes(fill = YrSold))+
+  theme_classic()
+  
+# There is a strong correlation over these variables (Sold Price and YearBuilt) for RL(Residential Low Density) in MSZoning.
+train %>% filter(MSZoning == "RL") %>% group_by(YearBuilt,YrSold) %>%  summarize(avg_soldprice = mean(SalePrice), q = n()) %>% arrange(desc(q)) %>% ggplot(aes(YearBuilt,avg_soldprice,group = YearBuilt))+
+  geom_boxplot(aes(fill = YearBuilt))+
+  theme_classic()
+
+# In terms of quality, there is a strong correlation of SalePrice with OverallQual. It seems that this variables is a good price predictor.
+
+train %>% filter(MSZoning == "RL") %>% group_by(LandSlope,OverallQual,YearBuilt) %>% summarize(avg_soldprice = mean(SalePrice)) %>% ggplot(aes(OverallQual,avg_soldprice,group = OverallQual))+
+  geom_boxplot(aes(fill = OverallQual))+
+  theme_classic()
+
+
 
 ```
+
+## Prediction model
+
+Previous analysis showed that some of the variables influence the sale price for houses. 
+
+```{r}
+selected_cols <- c("SalePrice","YearBuilt","LotArea","OverallQual","MSZoning")
+train_RL <- train[selected_cols] %>% filter(MSZoning == "RL")
+train_RL$MSZoning <- NULL
+test_RL <- test[selected_cols] %>% filter(MSZoning == "RL")
+test_RL$MSZoning <- NULL
+
+full.model <- lm(SalePrice ~., data = train_RL)
+
+step.model <- stepAIC(full.model, direction = "both", trace = FALSE)
+
+train_RL$SalePrice_pred <- predict(step.model, newdata = train_RL)
+
+cor(train_RL$SalePrice,train_RL$SalePrice_pred)
+
+train_RL %>% ggplot(aes(SalePrice/1000,SalePrice_pred/1000))+
+  geom_point(size = 3, alpha = 0.3, color = "red")+
+  geom_smooth(method = "lm", color = "blue")+
+  geom_abline(color = "black")+
+  theme_classic()+
+  xlab("Predicted Sale Price - thousands USD")+
+  ylab("Sale Price - thousands USD")
+  
+```
+
 
